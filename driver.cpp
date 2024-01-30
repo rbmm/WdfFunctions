@@ -1,7 +1,10 @@
 #include "stdafx.h"
 
 _NT_BEGIN
+#include "..\kpdb\module.h"
+
 #include "wdfindex.h"
+
 typedef struct WDF_DRIVER_GLOBALS *PWDF_DRIVER_GLOBALS;
 typedef struct WDF_OBJECT_ATTRIBUTES *PWDF_OBJECT_ATTRIBUTES;
 
@@ -84,8 +87,18 @@ hook_WdfMemoryCreate(
 	LONG count = InterlockedIncrementNoFence(&_S_count);
 	if (count <= 0x1000)
 	{
-		DbgPrint("%04x %p>> WdfMemoryCreate(%.4s, %x, %x, %p)=%x [%p %p]\n", count,
-			_ReturnAddress(), &PoolTag, PoolType, BufferSize, Attributes, status, *Memory, *Buffer);
+		ULONG d;
+		PVOID ret = _ReturnAddress();
+		PCSTR name;
+		PCSTR func = CModule::GetNameFromVa(ret, &d, &name);
+		
+		if (!func)
+		{
+			func = "";
+		}
+
+		DbgPrint("%04x %p, %s+%x >> WdfMemoryCreate(%.4s, %x, %x, %p)=%x [%p %p]\n", count,
+			ret, func, d, &PoolTag, PoolType, BufferSize, Attributes, status, *Memory, *Buffer);
 
 	}
 
@@ -115,14 +128,22 @@ hook_WdfMemoryCreatePreallocated(
 	LONG count = InterlockedIncrementNoFence(&_S_count);
 	if (count <= 0x1000)
 	{
-		DbgPrint("%04x %p>> WdfMemoryCreatePreallocated(%x, %p %p)=%x [%p]\n", count,
-			_ReturnAddress(), BufferSize, Buffer, Attributes, status, *Memory);
+		ULONG d=0;
+		PVOID ret = _ReturnAddress();
+		PCSTR name;
+		PCSTR func = CModule::GetNameFromVa(ret, &d, &name);
+
+		if (!func)
+		{
+			func = "";
+		}
+
+		DbgPrint("%04x %p, %s+%x >> WdfMemoryCreatePreallocated(%x, %p %p)=%x [%p]\n", count,
+			ret, func, d, BufferSize, Buffer, Attributes, status, *Memory);
 	}
 
 	return status;
 }
-
-#include "..\kpdb\module.h"
 
 NTSTATUS GetSpyInfo(_Inout_ PUNICODE_STRING RegistryPath, _Out_ PULONG hash, _Out_ PSTR WdfFunctions, _In_ ULONG cch);
 
